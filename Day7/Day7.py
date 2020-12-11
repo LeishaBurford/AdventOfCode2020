@@ -17,8 +17,6 @@ def build_bag_dict( rules):
     inner_bag_regex = compile(r'(?:(\d+|no other)([\w| ]+)bags*)')
     bag_dict = {}
     for rule in rules:
-        # all_matches = bag_rules_regex.findall(rule)[0]
-        # matches = [match for match in all_matches if match != '' and match != ' ']
         outer_bag = outer_bag_regex.findall(rule)[0].strip()
         inner_bag_rule = rule[rule.find('contain')+ len('contain'):]
         matches = inner_bag_regex.findall(inner_bag_rule)
@@ -33,19 +31,26 @@ def build_bag_dict( rules):
                 bag_dict[inner_bag].append(outer_bag)
     return bag_dict
 
-# def get_all_contained_bags(bag_to_search, bag_dict):
-#     if len(bag_dict[bag_to_search]) == 0:
-#         return {}
-#     all_bags = [get_all_contained_bags(bag, bag_dict) for bag, count in bag_dict[bag_to_search].items()]
-#     result = bag_dict[bag_to_search]
-#     for inner_bag_dict in all_bags:
-#         for bag, count in inner_bag_dict.items():
-#             if bag not in result:
-#                 result[bag] = count
-#     return result
+def build_bag_dict_with_count(rules):
+    outer_bag_regex = compile(r'([\w| ]+)bags contain ')
+    inner_bag_regex = compile(r'(?:(\d+|no other)([\w| ]+)bags*)')
+    bag_dict = {}
+    for rule in rules:
+        outer_bag = outer_bag_regex.findall(rule)[0].strip()
+        inner_bag_rule = rule[rule.find('contain')+ len('contain'):]
+        matches = inner_bag_regex.findall(inner_bag_rule)
+        for match in matches:
+            inner_bag = match[1].strip()
+            if match[0] == 'no other':
+                continue
+            count = int(match[0].strip())
+            if outer_bag not in bag_dict:
+                bag_dict[outer_bag] = [(inner_bag, count)]
+            else:
+                bag_dict[outer_bag].append((inner_bag, count))
+    return bag_dict
 
 def get_all_outer_bags(bag_to_search, bag_dict):
-    # TODO stopping condition
     if bag_to_search not in bag_dict.keys():
         return []
     result = set(bag_dict[bag_to_search])
@@ -54,26 +59,23 @@ def get_all_outer_bags(bag_to_search, bag_dict):
             result.add(outer_outer_bag)
     return result
 
+def get_count_of_inner_bags(bag_to_search, bag_dict):
+    if bag_to_search not in bag_dict.keys():
+        return 0
+    result = sum([count for colour, count in bag_dict[bag_to_search]])
+    for outer_bag, count in bag_dict[bag_to_search]:
+        result += count * get_count_of_inner_bags(outer_bag, bag_dict)
+        # for outer_outer_bag, outer_count in get_count_of_inner_bags(outer_bag, bag_dict):
+        #     result.add(outer_outer_bag)
+    return result
 
 bag_regulations = [rule.strip() for rule in open('Day7/bag_regulations.txt').readlines()]
-
 bag_dict = build_bag_dict(bag_regulations)
-print(bag_dict)
+
 outer_bags = get_all_outer_bags('shiny gold', bag_dict)
-print(outer_bags)
 print("Part 1:", len(outer_bags))
-# for inner_bag, outer_bags in bag_dict.items():
-#     print(inner_bag, outer_bags)
 
-
-# all_contents = dict.fromkeys(direct_contents.keys(), [])
-
-# for colour, contents in direct_contents.items():
-#     all_contents[colour] = get_all_contained_bags(colour, direct_contents)
-
-# for colour,contents in all_contents.items():
-#     print(colour, contents)
-
-# bag_count = len([colour for colour, contents in all_contents.items() if 'shiny gold' in contents  ])
-
-# print("Part 1:", bag_count)
+bag_dict = build_bag_dict_with_count(bag_regulations)
+print(bag_dict)
+inner_bags = get_count_of_inner_bags('shiny gold', bag_dict)
+print('Part 2:', inner_bags)
