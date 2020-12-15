@@ -1,5 +1,5 @@
 from pathlib import Path
-from itertools import permutations
+from itertools import chain, combinations
 
 adapters = [int(number.strip()) for number in open('Day10/joltage_output.txt').readlines()]
 
@@ -24,17 +24,50 @@ def get_joltage_diffs(adapters):
         outlet_joltage = adapter
     return diff_dict
 
+def has_a_chance(adapters):
+    # for i in range(0, len(adapters)):
+    #     for j in range(i + 1, len(adapters) - 1):
+    #         if abs(adapters[j] - adapters[i]) > 3 or abs(adapters[j] - adapters[i] < 1):
+    #             return False
+    for i,j in zip(range(0, len(adapters)), range(1, len(adapters) - 1)):
+        if abs(adapters[j] - adapters[i]) > 3 or abs(adapters[j] - adapters[i] < 1):
+                return False
+    return True
+
+def powerset(iterable):
+    s = list(iterable)
+    valid_arrangements = []
+    for r in range(1, len(s) + 1):
+        arrangements = list(combinations(s, r))
+        for combination in arrangements:
+            if has_a_chance(list(combination)):
+                valid_arrangements.append(list(combination))
+    return valid_arrangements
+    # return chain.from_iterable(combinations(s, r) for r in range(1, len(s)+1) if has_a_chance(list(combinations(s, r))))
+
 diff_dict = get_joltage_diffs(adapters)
 print("Part 1:", diff_dict[1] * diff_dict[3])
 
 built_in_adapter = max(adapters)
-adapters.remove(max(adapters))
 
-adapter_permutations = list(permutations(adapters))
-valid_arrangements = 0
-for permutation in adapter_permutations:
-    permutation.append(built_in_adapter)
-    if(get_joltage_diffs(permutation) != -1):
-        valid_arrangements += 1
 
-print("Part 2:", valid_arrangements)
+memo = {0: 1}
+for r in adapters:
+    memo[r] = memo.get(r-3,0) \
+          + memo.get(r-2,0) \
+          + memo.get(r-1,0)
+    print(r, memo)
+print(memo[adapters[-1]])
+
+# adapters.remove(max(adapters))
+
+# adapter_powerset = [list(arrangement) for arrangement in list(powerset(adapters))]
+# # print(len(adapter_powerset))
+# valid_arrangements = 0
+# for arrangement in adapter_powerset:
+#     arrangement.append(built_in_adapter)
+#     if(get_joltage_diffs(arrangement) != -1):
+#         valid_arrangements += 1
+
+# print("Part 2:", valid_arrangements)
+# print(adapter_powerset)
